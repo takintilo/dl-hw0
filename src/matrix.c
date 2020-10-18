@@ -103,6 +103,20 @@ matrix matmul(matrix a, matrix b)
 {
     matrix c = make_matrix(a.rows, b.cols);
     // TODO: 1.4 - Implement matrix multiplication. Make sure it's fast!
+    // matrix implemented in row-major order
+    int i, j, k;
+    int rows = c.rows;
+    int cols = c.cols;
+    float sum;
+    for (i = 0; i < rows; ++i) {
+        for (k = 0; k < a.cols; ++k) {
+            for (j = 0; j < cols; ++j) {
+                sum = 0;
+                sum += a.data[i * a.cols + k] * b.data[k * b.cols + j];
+            }
+            c.data[i * cols + j] = sum;
+        }
+    }
 
     return c;
 }
