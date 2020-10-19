@@ -1,32 +1,32 @@
-#include <stdlib.h>
-#include <math.h>
-#include <string.h>
-#include <assert.h>
-#include <time.h>
-#include <sys/time.h>
-#include "uwnet.h"
-#include "matrix.h"
-#include "image.h"
 #include "test.h"
 #include "args.h"
+#include "image.h"
+#include "matrix.h"
+#include "uwnet.h"
+#include <assert.h>
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
+#include <time.h>
 
 int tests_total = 0;
 int tests_fail = 0;
 
-
-int within_eps(float a, float b){
-    return a-EPS<b && b<a+EPS;
+int within_eps(float a, float b)
+{
+    return a - EPS < b && b < a + EPS;
 }
 
 int same_matrix(matrix a, matrix b)
 {
     int i;
-    if(a.rows != b.rows || a.cols != b.cols) {
-        printf ("first matrix: %dx%d, second matrix:%dx%d\n", a.rows, a.cols, b.rows, b.cols);
+    if (a.rows != b.rows || a.cols != b.cols) {
+        printf("first matrix: %dx%d, second matrix:%dx%d\n", a.rows, a.cols, b.rows, b.cols);
         return 0;
     }
-    for(i = 0; i < a.rows*a.cols; ++i){
-        if(!within_eps(a.data[i], b.data[i])) {
+    for (i = 0; i < a.rows * a.cols; ++i) {
+        if (!within_eps(a.data[i], b.data[i])) {
             printf("differs at %d, %f vs %f\n", i, a.data[i], b.data[i]);
             return 0;
         }
@@ -37,7 +37,7 @@ int same_matrix(matrix a, matrix b)
 double what_time_is_it_now()
 {
     struct timeval time;
-    if (gettimeofday(&time,NULL)){
+    if (gettimeofday(&time, NULL)) {
         return 0;
     }
     return (double)time.tv_sec + (double)time.tv_usec * .000001;
@@ -47,7 +47,7 @@ void test_copy_matrix()
 {
     matrix a = random_matrix(32, 64, 10);
     matrix c = copy_matrix(a);
-    TEST(same_matrix(a,c));
+    TEST(same_matrix(a, c));
     free_matrix(a);
     free_matrix(c);
 }
@@ -209,7 +209,6 @@ void test_connected_layer()
     free_matrix(updated_w);
 }
 
-
 void test_matrix_speed()
 {
     int i;
@@ -217,13 +216,13 @@ void test_matrix_speed()
     matrix a = random_matrix(512, 512, 1);
     matrix b = random_matrix(512, 512, 1);
     double start = what_time_is_it_now();
-    for(i = 0; i < n; ++i){
-        matrix d = matmul(a,b);
+    for (i = 0; i < n; ++i) {
+        matrix d = matmul(a, b);
         free_matrix(d);
     }
     printf("Matmul elapsed %lf sec\n", what_time_is_it_now() - start);
     start = what_time_is_it_now();
-    for(i = 0; i < n; ++i){
+    for (i = 0; i < n; ++i) {
         matrix at = transpose_matrix(a);
         free_matrix(at);
     }
@@ -242,6 +241,5 @@ void run_tests()
     test_connected_layer();
     //test_matrix_speed();
     //printf("%d tests, %d passed, %d failed\n", tests_total, tests_total-tests_fail, tests_fail);
-    printf("%d tests, %d passed, %d failed\n", tests_total, tests_total-tests_fail, tests_fail);
+    printf("%d tests, %d passed, %d failed\n", tests_total, tests_total - tests_fail, tests_fail);
 }
-

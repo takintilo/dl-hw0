@@ -1,7 +1,8 @@
-#include <stdlib.h>
-#include <math.h>
-#include <assert.h>
+#include "matrix.h"
 #include "uwnet.h"
+#include <assert.h>
+#include <math.h>
+#include <stdlib.h>
 
 // Add bias terms to a matrix
 // matrix m: partially computed output of layer
@@ -10,10 +11,10 @@ void forward_bias(matrix m, matrix b)
 {
     assert(b.rows == 1);
     assert(m.cols == b.cols);
-    int i,j;
-    for(i = 0; i < m.rows; ++i){
-        for(j = 0; j < m.cols; ++j){
-            m.data[i*m.cols + j] += b.data[j];
+    int i, j;
+    for (i = 0; i < m.rows; ++i) {
+        for (j = 0; j < m.cols; ++j) {
+            m.data[i * m.cols + j] += b.data[j];
         }
     }
 }
@@ -24,9 +25,9 @@ void forward_bias(matrix m, matrix b)
 void backward_bias(matrix delta, matrix db)
 {
     int i, j;
-    for(i = 0; i < delta.rows; ++i){
-        for(j = 0; j < delta.cols; ++j){
-            db.data[j] += -delta.data[i*delta.cols + j];
+    for (i = 0; i < delta.rows; ++i) {
+        for (j = 0; j < delta.cols; ++j) {
+            db.data[j] += -delta.data[i * delta.cols + j];
         }
     }
 }
@@ -38,7 +39,10 @@ void backward_bias(matrix delta, matrix db)
 matrix forward_connected_layer(layer l, matrix in)
 {
     // TODO: 3.1 - run the network forward
-    matrix out = make_matrix(in.rows, l.w.cols); // Going to want to change this!
+    /* matrix out = make_matrix(in.rows, l.w.cols); // Going to want to change this! */
+    matrix out = matmul(in, l.w);
+    forward_bias(out, l.b);
+    activate_matrix(out, l.activation);
 
     // Saving our input and output and making a new delta matrix to hold errors
     // Probably don't change this
@@ -52,32 +56,45 @@ matrix forward_connected_layer(layer l, matrix in)
 
 // Run a connected layer backward
 // layer l: layer to run
-// matrix delta: 
+// matrix delta:
 void backward_connected_layer(layer l, matrix prev_delta)
 {
-    matrix in    = l.in[0];
-    matrix out   = l.out[0];
+    matrix in = l.in[0];
+    matrix out = l.out[0];
     matrix delta = l.delta[0];
 
     // TODO: 3.2
     // delta is the error made by this layer, dL/dout
     // First modify in place to be dL/d(in*w+b) using the gradient of activation
-    
+    gradient_matrix(out, l.activation, delta);
+
     // Calculate the updates for the bias terms using backward_bias
     // The current bias deltas are stored in l.db
+    backward_bias(delta, l.db);
 
     // Then calculate dL/dw. Use axpy to subtract this dL/dw into any previously stored
     // updates for our weights, which are stored in l.dw
     // l.dw = l.dw - dL/dw
+    // dL/dw: multiply dL/db by x
+    matrix dLdw = matmul(transpose_matrix(in), l.db);
+    /* printf("%d\n", dLdw.rows); */
+    /* printf("%d\n", dLdw.cols); */
+    /* printf("%d\n", l.dw.rows); */
+    /* printf("%d\n", l.dw.cols); */
+    /* forward_bias(l.dw, dLdw); */
 
-    if(prev_delta.data){
+    axpy_matrix(-1, dLdw, l.dw);
+
+    if (prev_delta.data) {
         // Finally, if there is a previous layer to calculate for,
         // calculate dL/d(in). Again, using axpy, add this into the current
         // value we have for the previous layers delta, prev_delta.
+        matrix dLdx = matmul(l.db, transpose_matrix(l.w));
+        /* axpy_matrix(1, dLdx, prev_delta); */
     }
 }
 
-// Update 
+// Update
 void update_connected_layer(layer l, float rate, float momentum, float decay)
 {
     // TODO: 3.3
@@ -92,27 +109,24 @@ void update_connected_layer(layer l, float rate, float momentum, float decay)
     // l.w = l.w + rate*l.dw
     // l.b = l.b + rade*l.db
 
-
     // Finally, we want to scale dw and db by our momentum to prepare them for the next round
     // l.dw *= momentum
     // l.db *= momentum
-
 }
 
 layer make_connected_layer(int inputs, int outputs, ACTIVATION activation)
 {
-    layer l = {0};
-    l.w  = random_matrix(inputs, outputs, sqrtf(2.f/inputs));
+    layer l = { 0 };
+    l.w = random_matrix(inputs, outputs, sqrtf(2.f / inputs));
     l.dw = make_matrix(inputs, outputs);
-    l.b  = make_matrix(1, outputs);
+    l.b = make_matrix(1, outputs);
     l.db = make_matrix(1, outputs);
     l.in = calloc(1, sizeof(matrix));
     l.out = calloc(1, sizeof(matrix));
     l.delta = calloc(1, sizeof(matrix));
     l.activation = activation;
-    l.forward  = forward_connected_layer;
+    l.forward = forward_connected_layer;
     l.backward = backward_connected_layer;
-    l.update   = update_connected_layer;
+    l.update = update_connected_layer;
     return l;
 }
-
