@@ -63,10 +63,10 @@ void backward_connected_layer(layer l, matrix prev_delta)
     matrix out = l.out[0];
     matrix delta = l.delta[0];
 
-    // TODO: 3.2
     // delta is the error made by this layer, dL/dout
     // First modify in place to be dL/d(in*w+b) using the gradient of activation
     gradient_matrix(out, l.activation, delta);
+    matrix dLdinwb = copy_matrix(delta);
 
     // Calculate the updates for the bias terms using backward_bias
     // The current bias deltas are stored in l.db
@@ -75,43 +75,40 @@ void backward_connected_layer(layer l, matrix prev_delta)
     // Then calculate dL/dw. Use axpy to subtract this dL/dw into any previously stored
     // updates for our weights, which are stored in l.dw
     // l.dw = l.dw - dL/dw
-    // dL/dw: multiply dL/db by x
-    matrix dLdw = matmul(transpose_matrix(in), l.db);
-    /* printf("%d\n", dLdw.rows); */
-    /* printf("%d\n", dLdw.cols); */
-    /* printf("%d\n", l.dw.rows); */
-    /* printf("%d\n", l.dw.cols); */
-    /* forward_bias(l.dw, dLdw); */
-
+    matrix dLdw = matmul(transpose_matrix(in), dLdinwb);
     axpy_matrix(-1, dLdw, l.dw);
 
     if (prev_delta.data) {
         // Finally, if there is a previous layer to calculate for,
         // calculate dL/d(in). Again, using axpy, add this into the current
         // value we have for the previous layers delta, prev_delta.
-        matrix dLdx = matmul(l.db, transpose_matrix(l.w));
-        /* axpy_matrix(1, dLdx, prev_delta); */
+        matrix dLdx = matmul(dLdinwb, transpose_matrix(l.w));
+        axpy_matrix(1, dLdx, prev_delta);
     }
 }
 
 // Update
 void update_connected_layer(layer l, float rate, float momentum, float decay)
 {
-    // TODO: 3.3
     // Currently l.dw and l.db store:
     // l.dw = momentum * l.dw_prev - dL/dw
     // l.db = momentum * l.db_prev - dL/db
 
     // For our weights we want to include weight decay:
     // l.dw = l.dw - decay * l.w
+    axpy_matrix(-decay, l.w, l.dw);
 
     // Then for both weights and biases we want to apply the updates:
     // l.w = l.w + rate*l.dw
-    // l.b = l.b + rade*l.db
+    // l.b = l.b + rate*l.db
+    axpy_matrix(rate, l.dw, l.w);
+    axpy_matrix(rate, l.db, l.b);
 
     // Finally, we want to scale dw and db by our momentum to prepare them for the next round
     // l.dw *= momentum
     // l.db *= momentum
+    scal_matrix(momentum, l.dw);
+    scal_matrix(momentum, l.db);
 }
 
 layer make_connected_layer(int inputs, int outputs, ACTIVATION activation)

@@ -102,7 +102,6 @@ void axpy_matrix(float a, matrix x, matrix y)
 matrix matmul(matrix a, matrix b)
 {
     matrix c = make_matrix(a.rows, b.cols);
-    // TODO: 1.4 - Implement matrix multiplication. Make sure it's fast!
     // matrix implemented in row-major order
     int i, j, k;
     int rows = c.rows;
